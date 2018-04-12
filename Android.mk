@@ -32,6 +32,12 @@ LOCAL_MODULE := libtee_aes
 LOCAL_MODULE_TAGS := optional
 #LOCAL_MODULE_TARGET_ARCH := arm aarch64
 
+ifeq ($(USE_SEDGET_VIDEO), true)
+LOCAL_C_INCLUDES += external/sedget/host/include
+LOCAL_SHARED_LIBRARIES += libsedget_video
+LOCAL_CFLAGS += -DUSE_SEDGET_VIDEO
+endif
+
 # Build the 32-bit version.
 LOCAL_MULTILIB := both
 

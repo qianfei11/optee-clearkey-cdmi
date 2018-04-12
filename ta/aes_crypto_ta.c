@@ -81,6 +81,34 @@ void TA_CloseSessionEntryPoint(void *sess_ctx)
   DMSG("Session closed");
 }
 
+static TEE_Result allocate_crypto_op(uint8_t *key, uint32_t key_size)
+{
+  TEE_Result res;
+  TEE_ObjectHandle hkey;
+  TEE_Attribute attr;
+
+  res = TEE_AllocateOperation(&crypto_op, TEE_ALG_AES_CTR,
+                              TEE_MODE_DECRYPT, 128);
+  CHECK(res, "TEE_AllocateOperation", return res;);
+
+  res = TEE_AllocateTransientObject(TEE_TYPE_AES, 128, &hkey);
+  CHECK(res, "TEE_AllocateTransientObject", return res;);
+
+  attr.attributeID = TEE_ATTR_SECRET_VALUE;
+  attr.content.ref.buffer = key;
+  attr.content.ref.length = key_size;
+
+  res = TEE_PopulateTransientObject(hkey, &attr, 1);
+  CHECK(res, "TEE_PopulateTransientObject", return res;);
+
+  res = TEE_SetOperationKey(crypto_op, hkey);
+  CHECK(res, "TEE_SetOperationKey", return res;);
+
+  TEE_FreeTransientObject(hkey);
+
+  return res;
+}
+
 /* Decrypt chunk of data */
 static TEE_Result decrypt_128_ctr_aes(void *in, uint32_t sz, /*input buffer and size */
         void *out, uint32_t *outsz, /*output buffer and size */
@@ -89,29 +117,12 @@ static TEE_Result decrypt_128_ctr_aes(void *in, uint32_t sz, /*input buffer and 
     )
 {
   TEE_Result res;
-  TEE_ObjectHandle hkey;
-  TEE_Attribute attr;
 
   if (!crypto_op) {
-    res = TEE_AllocateOperation(&crypto_op, TEE_ALG_AES_CTR,
-              TEE_MODE_DECRYPT, 128);
-    CHECK(res, "TEE_AllocateOperation", return res;);
-
-    res = TEE_AllocateTransientObject(TEE_TYPE_AES, 128, &hkey);
-    CHECK(res, "TEE_AllocateTransientObject", return res;);
-
-    attr.attributeID = TEE_ATTR_SECRET_VALUE;
-    attr.content.ref.buffer = aes_key;
-    attr.content.ref.length = aes_key_size;
-
-    res = TEE_PopulateTransientObject(hkey, &attr, 1);
-    CHECK(res, "TEE_PopulateTransientObject", return res;);
-
-    res = TEE_SetOperationKey(crypto_op, hkey);
-    CHECK(res, "TEE_SetOperationKey", return res;);
-
-    TEE_FreeTransientObject(hkey);
+    res = allocate_crypto_op(aes_key, aes_key_size);
+    CHECK(res, "allocate_crypto_op", return res;);
   }
+
   TEE_CipherInit(crypto_op, iv, iv_size);
   res = TEE_CipherDoFinal(crypto_op, in, sz, out, outsz);
   CHECK(res, "TEE_CipherDoFinal", return res;);
@@ -271,6 +282,61 @@ static TEE_Result copy_secure_memory(uint32_t param_types, TEE_Param params[4])
   return TEE_SUCCESS;
 }
 
+#define CTR_AES_BLOCK_SIZE  16
+#define CTR_AES_IV_SIZE CTR_AES_BLOCK_SIZE
+#define CTR_AES_KEY_SIZE CTR_AES_BLOCK_SIZE
+
+struct sub_sample_t {
+    uint32_t clear_bytes;
+    uint32_t encrp_bytes;
+};
+
+static TEE_Result aes_Ctr128_Encrypt_secure(uint32_t param_types,
+                                     TEE_Param params[TEE_NUM_PARAMS])
+{
+  TEE_Result res = TEE_SUCCESS;
+  void *key, *iv, *in, *out, *iter_in, *iter_out;
+  uint32_t offset = 0;
+  struct sub_sample_t *sub_samples;
+
+  in = params[0].memref.buffer;
+  out = params[1].memref.buffer;
+  sub_samples = (struct sub_sample_t *)params[2].memref.buffer;
+  key = params[3].memref.buffer;
+  iv = (uint8_t*)key + CTR_AES_KEY_SIZE;
+  iter_in = in;
+  iter_out = out;
+
+  while (sub_samples->clear_bytes != 0xFFFFFFFF) {
+    if (sub_samples->clear_bytes) {
+      TEE_MemMove(iter_out, iter_in, sub_samples->clear_bytes);
+                  offset += sub_samples->clear_bytes;
+                  iter_out = (uint8_t *)out + offset;
+                  iter_in = (uint8_t *)in + offset;
+    }
+    if (sub_samples->encrp_bytes) {
+      if (!crypto_op) {
+        res = allocate_crypto_op(key, CTR_AES_KEY_SIZE);
+        CHECK(res, "allocate_crypto_op", return res;);
+      }
+      TEE_CipherInit(crypto_op, iv, CTR_AES_IV_SIZE);
+      res = TEE_CipherDoFinal(crypto_op,
+                              iter_in, sub_samples->encrp_bytes,
+                              iter_out, &sub_samples->encrp_bytes);
+      offset += sub_samples->encrp_bytes;
+      iter_out = (uint8_t *)out + offset;
+      iter_in = (uint8_t *)in + offset;
+    }
+    sub_samples++;
+  }
+
+#ifdef CFG_CACHE_API
+  res = TEE_CacheFlush((char *)out, offset);
+#endif
+  (void)&param_types;
+  return res;
+}
+
 /*
  * Called when a TA is invoked. sess_ctx hold that value that was
  * assigned by TA_OpenSessionEntryPoint(). The rest of the paramters
@@ -286,6 +352,8 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
     return aes_Ctr128_Encrypt(param_types, params);
   case TA_COPY_SECURE_MEMORY:
     return copy_secure_memory(param_types, params);
+  case TA_AES_CTR128_SECURE_ENCRYPT:
+    return aes_Ctr128_Encrypt_secure(param_types, params);
   default:
     return TEE_ERROR_BAD_PARAMETERS;
   }

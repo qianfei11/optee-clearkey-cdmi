@@ -36,6 +36,12 @@ extern "C" {
 #define CTR_AES_IV_SIZE CTR_AES_BLOCK_SIZE
 #define CTR_AES_KEY_SIZE CTR_AES_BLOCK_SIZE
 
+/* sub_frame data desc struct */
+typedef struct _sub_sample_t {
+    uint32_t clear_bytes;
+    uint32_t encrp_bytes;
+} sub_sample_t;
+
 /* Initialize OP TEE and allocate shared memory*/
 int
 TEE_crypto_init();
@@ -50,6 +56,16 @@ TEE_AES_ctr128_encrypt(const unsigned char* in_data,
     unsigned int *num,
     uint32_t offset,
     bool secure);
+
+/* AES CTR 128 decryption/encryption for secure buffer */
+int
+TEE_AES_ctr128_encrypt_secure(const unsigned char* in_data,
+    unsigned char* out_data,
+    const sub_sample_t* samples,
+    uint32_t num_samples,
+    const char* key,
+    unsigned char iv[CTR_AES_BLOCK_SIZE],
+    uint32_t *length);
 
 /* Copy from source buffer to secure dest buffer */
 int TEE_copy_secure_memory(const unsigned char* in_data,
