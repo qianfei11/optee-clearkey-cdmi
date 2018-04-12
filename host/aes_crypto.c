@@ -137,8 +137,9 @@ TEE_AES_ctr128_encrypt(const unsigned char* in_data,
   if (!key || !out_data || !num || !iv)
     return EINVAL;
 
+  /* type cast to avoid warning of losing const qualifier */
   if (blockOffset > 0)
-    memcpy(in_data + offset - blockOffset, ecount_buf, blockOffset);
+    memcpy((void *)(in_data + offset - blockOffset), ecount_buf, blockOffset);
 
   if (secure) {
     /* extract fd */

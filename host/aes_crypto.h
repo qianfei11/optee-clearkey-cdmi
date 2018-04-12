@@ -28,7 +28,9 @@
 #ifndef OPTEE_AES_DECRYPT_HOST_H_
 #define OPTEE_AES_DECRYPT_HOST_H_
 
-#include <stdbool.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define CTR_AES_BLOCK_SIZE  16
 #define CTR_AES_IV_SIZE CTR_AES_BLOCK_SIZE
@@ -58,5 +60,9 @@ int TEE_copy_secure_memory(const unsigned char* in_data,
 /* Close TEE session and close memory*/
 int
 TEE_crypto_close();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
