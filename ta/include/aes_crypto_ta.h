@@ -72,6 +72,11 @@ enum {
                TEE_PARAM_TYPE_NONE,\
                TEE_PARAM_TYPE_NONE);
 
+#define AES_CTR128_ENCRYPT_SECURE_TEE_PARAM_TYPES TEE_PARAM_TYPES( \
+               TEE_PARAM_TYPE_MEMREF_INPUT, \
+               TEE_PARAM_TYPE_MEMREF_OUTPUT, \
+               TEE_PARAM_TYPE_MEMREF_INPUT, \
+               TEE_PARAM_TYPE_MEMREF_INPUT)
 
 #define IMAGE_END 2
 #define AES_KEY_IS_CLEARKEY 4

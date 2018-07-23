@@ -295,45 +295,97 @@ static TEE_Result aes_Ctr128_Encrypt_secure(uint32_t param_types,
                                      TEE_Param params[TEE_NUM_PARAMS])
 {
   TEE_Result res = TEE_SUCCESS;
-  void *key, *iv, *in, *out, *iter_in, *iter_out;
-  uint32_t offset = 0;
+  void *key, *iv, *inbuf, *outbuf, *iter_in, *iter_out;
+  uint32_t insz, outsz, offset = 0;
   struct sub_sample_t *sub_samples;
+  uint8_t *samples_end;
+  uint32_t  exp_param_types = AES_CTR128_ENCRYPT_SECURE_TEE_PARAM_TYPES;
 
-  in = params[0].memref.buffer;
-  out = params[1].memref.buffer;
+  if (param_types != exp_param_types) {
+    EMSG("%s: incorrect parameters", __func__);
+    return TEE_ERROR_BAD_PARAMETERS;
+  }
+
+  if (params[0].memref.buffer == NULL || params[0].memref.size == 0)
+    return TEE_ERROR_BAD_PARAMETERS;
+
+  if (params[1].memref.buffer == NULL || params[1].memref.size == 0)
+    return TEE_ERROR_BAD_PARAMETERS;
+
+  if (params[2].memref.buffer == NULL ||
+      params[2].memref.size < sizeof(struct sub_sample_t))
+    return TEE_ERROR_BAD_PARAMETERS;
+
+  if (params[3].memref.buffer == NULL ||
+      params[3].memref.size < CTR_AES_KEY_SIZE + CTR_AES_IV_SIZE)
+    return TEE_ERROR_BAD_PARAMETERS;
+
+  inbuf = params[0].memref.buffer;
+  insz = params[0].memref.size;
+  outbuf = params[1].memref.buffer;
+  outsz = params[1].memref.size;
   sub_samples = (struct sub_sample_t *)params[2].memref.buffer;
+  samples_end = ((uint8_t *)params[2].memref.buffer + params[2].memref.size);
+
+  /*Encrypt_secure function only be called in 'CFG_SECURE_DATA_PATH=y' case */
+  res = TEE_CheckMemoryAccessRights(TEE_MEMORY_ACCESS_ANY_OWNER |
+                                    TEE_MEMORY_ACCESS_WRITE |
+                                    TEE_MEMORY_ACCESS_SECURE,
+                                    outbuf, outsz);
+  if (res != TEE_SUCCESS) {
+    EMSG("%s: WARNING: output buffer is not in secure memory", __func__);
+    return TEE_ERROR_SECURITY;
+  }
+
   key = params[3].memref.buffer;
   iv = (uint8_t*)key + CTR_AES_KEY_SIZE;
-  iter_in = in;
-  iter_out = out;
+  iter_in = inbuf;
+  iter_out = outbuf;
 
-  while (sub_samples->clear_bytes != 0xFFFFFFFF) {
+  while ((uint8_t *)sub_samples < samples_end && 
+         sub_samples->clear_bytes != 0xFFFFFFFF) {
     if (sub_samples->clear_bytes) {
+      /*
+       * Buffer overflow checking. Offset starts from ZERO;
+       * use minus here for size checking in case integer overflow.
+       */
+      if (insz - offset < sub_samples->clear_bytes ||
+          outsz - offset < sub_samples->clear_bytes)
+        return TEE_ERROR_BAD_PARAMETERS;
+
       TEE_MemMove(iter_out, iter_in, sub_samples->clear_bytes);
                   offset += sub_samples->clear_bytes;
-                  iter_out = (uint8_t *)out + offset;
-                  iter_in = (uint8_t *)in + offset;
+      iter_out = (uint8_t *)outbuf + offset;
+      iter_in = (uint8_t *)inbuf + offset;
     }
     if (sub_samples->encrp_bytes) {
       if (!crypto_op) {
         res = allocate_crypto_op(key, CTR_AES_KEY_SIZE);
         CHECK(res, "allocate_crypto_op", return res;);
       }
+      /*
+       * Buffer overflow checking. Offset starts from ZERO;
+       * use minus here for size checking in case integer overflow.
+       */
+      if (insz - offset < sub_samples->encrp_bytes ||
+          outsz - offset < sub_samples->encrp_bytes)
+        return TEE_ERROR_BAD_PARAMETERS;
+
       TEE_CipherInit(crypto_op, iv, CTR_AES_IV_SIZE);
       res = TEE_CipherDoFinal(crypto_op,
                               iter_in, sub_samples->encrp_bytes,
                               iter_out, &sub_samples->encrp_bytes);
       offset += sub_samples->encrp_bytes;
-      iter_out = (uint8_t *)out + offset;
-      iter_in = (uint8_t *)in + offset;
+      iter_out = (uint8_t *)outbuf + offset;
+      iter_in = (uint8_t *)inbuf + offset;
     }
     sub_samples++;
   }
 
 #ifdef CFG_CACHE_API
-  res = TEE_CacheFlush((char *)out, offset);
+  res = TEE_CacheFlush((char *)outbuf, offset);
 #endif
-  (void)&param_types;
+
   return res;
 }
 
