@@ -58,6 +58,7 @@ int clearkey_plat_get_mem_fd(void *mem_handle)
 	native_handle_t *handle = (native_handle_t *)mem_handle;
 	return handle->data[0];
 #else
+	(void)mem_handle;
 	return -1;
 #endif
 }

@@ -137,8 +137,9 @@ TEE_AES_ctr128_encrypt(const unsigned char* in_data,
   if (!key || !out_data || !num || !iv)
     return EINVAL;
 
+  /* type cast to avoid warning of losing const qualifier */
   if (blockOffset > 0)
-    memcpy(in_data + offset - blockOffset, ecount_buf, blockOffset);
+    memcpy((void *)(in_data + offset - blockOffset), ecount_buf, blockOffset);
 
   if (secure) {
     /* extract fd */
@@ -293,6 +294,63 @@ int TEE_copy_secure_memory(const unsigned char* in_data, unsigned char* out_data
   TEEC_ReleaseSharedMemory(&g_outm);
 
   return 0;
+}
+
+int
+TEE_AES_ctr128_encrypt_secure(const unsigned char* in_data,
+    unsigned char* out_data,
+    const sub_sample_t* samples,
+    uint32_t samples_size,
+    const char* key,
+    unsigned char iv[CTR_AES_BLOCK_SIZE],
+    uint32_t *length)
+{
+    TEEC_SharedMemory shm;
+    TEEC_Result res;
+    uint32_t err_origin;
+    int memfd = -1;
+    TEEC_Operation op;
+    char key_and_iv[CTR_AES_KEY_SIZE + CTR_AES_IV_SIZE];
+    /*
+     * Retrieve SDP memory handles -- leave error checking in
+     * TEEC_RegisterSharedMemoryFileDescriptor.
+     */
+    memfd = clearkey_plat_get_mem_fd((void *)out_data);
+
+    shm.flags = TEEC_MEM_INPUT | TEEC_MEM_OUTPUT;
+    res = TEEC_RegisterSharedMemoryFileDescriptor(&ctx, &shm, memfd);
+    if (res != TEEC_SUCCESS)
+        return -1;
+
+    /* First input buffer as tempref */
+    op.params[0].tmpref.buffer = (void *)in_data;
+    op.params[0].tmpref.size = *length;
+    /* Output buffer as SDP */
+    op.params[1].memref.parent = &shm;
+    op.params[1].memref.size = *length;
+    op.params[1].memref.offset = 0;
+    /* Frames */
+    op.params[2].tmpref.buffer = (void *)samples;
+    op.params[2].tmpref.size = samples_size;
+    if (key) {
+        memcpy(key_and_iv, key, CTR_AES_KEY_SIZE);
+        memcpy(&key_and_iv[CTR_AES_KEY_SIZE], iv, CTR_AES_IV_SIZE);
+    } else
+        memset(key_and_iv, 0, sizeof(key_and_iv));
+
+    op.params[3].tmpref.buffer = (void *)key_and_iv;
+    op.params[3].tmpref.size = sizeof(key_and_iv);
+
+    op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
+                                     TEEC_MEMREF_PARTIAL_OUTPUT,
+                                     TEEC_MEMREF_TEMP_INPUT,
+                                     TEEC_MEMREF_TEMP_INPUT);
+
+    res = TEEC_InvokeCommand(&sess, TA_AES_CTR128_SECURE_ENCRYPT,
+                             &op, &err_origin);
+    TEEC_ReleaseSharedMemory(&shm);
+    CHECK_INVOKE(res, err_origin);
+    return memfd;
 }
 
 int TEE_crypto_init()

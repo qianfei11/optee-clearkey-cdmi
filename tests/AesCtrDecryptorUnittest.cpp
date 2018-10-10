@@ -95,7 +95,7 @@ class AesCtrDecryptorTest : public ::testing::Test {
             TEE_AES_ctr128_encrypt(source + offset, destination + offset,
                     subSample.mNumBytesOfEncryptedData, (const char*)keyVector.array(),
                     opensslIv, previousEncryptedCounter,
-                    &blockOffset);
+                    &blockOffset, offset, false);
 #endif
             offset += subSample.mNumBytesOfEncryptedData;
         }
