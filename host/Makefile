@@ -32,6 +32,7 @@ clearkey_platform.o:
 
 aes_crypto: $(AES_CRYPTO_OBJS)
 	@echo "Building aes crypto"
+	$(CC) -shared $(AES_CRYPTO_CFLAGS) $(AES_CRYPTO_LDADD) -o lib$(OPTEE_AES_LIBNAME).so $^
 	$(AR) rcs lib$(OPTEE_AES_LIBNAME).a $^
 
 #	  $(CC) $(LDADD) -o $@ $<
