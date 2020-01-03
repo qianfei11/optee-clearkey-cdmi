@@ -197,8 +197,10 @@ static TEE_Result aes_Ctr128_Encrypt(uint32_t param_types, TEE_Param params[4])
   }
 #endif
 
+#ifdef CFG_CACHE_API
   res = TEE_CacheFlush((char *)outbuf, outsz);
   CHECK(res, "TEE_CacheFlush", return res;);
+#endif
 
   res = decrypt_128_ctr_aes(buf, sz, outbuf, &outsz,
             (uint8_t*) key, key_size,
@@ -210,8 +212,10 @@ static TEE_Result aes_Ctr128_Encrypt(uint32_t param_types, TEE_Param params[4])
       return res;
   }
 
+#ifdef CFG_CACHE_API
   res = TEE_CacheFlush((char *)outbuf, outsz);
   CHECK(res, "TEE_CacheFlush", return res;);
+#endif
 
   return TEE_SUCCESS;
 }
@@ -270,14 +274,18 @@ static TEE_Result copy_secure_memory(uint32_t param_types, TEE_Param params[4])
   }
 #endif
 
+#ifdef CFG_CACHE_API
   res = TEE_CacheFlush((char *)outbuf, outsz);
   CHECK(res, "TEE_CacheFlush", return res;);
+#endif
 
   /* inject data */
   TEE_MemMove(outbuf, inbuf, insz);
 
+#ifdef CFG_CACHE_API
   res = TEE_CacheFlush((char *)outbuf, outsz);
   CHECK(res, "TEE_CacheFlush", return res;);
+#endif
 
   return TEE_SUCCESS;
 }
