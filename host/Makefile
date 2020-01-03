@@ -20,12 +20,12 @@ all:  aes_crypto
 aes_crypto.o:
 	@echo Building aes_crypto
 	$(CC) $(AES_CRYPTO_CPPFLAGS) $(AES_CRYPTO_CFLAGS) \
-		$(AES_CRYPTO_LDADD) $(AES_CRYPTO_LDADD) -o $@ -c $(AES_CRYPTO_SOURCES)
+		$(AES_CRYPTO_LDADD) -o $@ -c $(AES_CRYPTO_SOURCES)
 
 clearkey_platform.o:
 	@echo Building clearkey_platform
 	$(CC) $(AES_CRYPTO_CPPFLAGS) $(AES_CRYPTO_CFLAGS) \
-		$(AES_CRYPTO_LDADD) $(AES_CRYPTO_LDADD) -o $@ -c $(AES_PLATFORM_SOURCES)
+		$(AES_CRYPTO_LDADD) -o $@ -c $(AES_PLATFORM_SOURCES)
 
 .cpp.o:
 	$(CXX) $(CXXFLAGS) $(CDMI_INCLUDES) -c $< -o $@
