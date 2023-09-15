@@ -25,30 +25,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <endian.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <err.h>
-#include <errno.h>
-#include <assert.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/mman.h>
-#include <tee_client_api.h>
-#include <tee_client_api_extensions.h>
 #include <aes_crypto_ta.h>
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "aes_crypto.h"
 #include "clearkey_platform.h"
 #include "logging.h"
 #include "include/uapi/linux/ion.h"
-
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 

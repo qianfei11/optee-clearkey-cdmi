@@ -1,40 +1,28 @@
+CC      ?= $(CROSS_COMPILE)gcc
+LD      ?= $(CROSS_COMPILE)ld
+AR      ?= $(CROSS_COMPILE)ar
+NM      ?= $(CROSS_COMPILE)nm
+OBJCOPY ?= $(CROSS_COMPILE)objcopy
+OBJDUMP ?= $(CROSS_COMPILE)objdump
+READELF ?= $(CROSS_COMPILE)readelf
 
-AES_CRYPTO_OBJS = aes_crypto.o clearkey_platform.o
-AES_CRYPTO_SOURCES = aes_crypto.c
-AES_PLATFORM_SOURCES =  clearkey_platform.c
-CFG_TEE_TA_LOG_LEVEL ?= 3
-AES_CRYPTO_CPPFLAGS += -DCFG_TEE_TA_LOG_LEVEL=$(CFG_TEE_TA_LOG_LEVEL) -DCFG_TRACE_LEVEL=3 -fPIC
+OBJS = main.o aes_crypto.o clearkey_platform.o
 
-AES_CRYPTO_CFLAGS += -Wall -I../ta/include -I$(TEEC_EXPORT)/include -fPIC
-AES_CRYPTO_LDADD += -lteec -L$(TEEC_EXPORT)/lib
+CFLAGS += -Wall -I../ta/include -I./include
+CFLAGS += -I$(TEEC_EXPORT)/include
+LDADD += -lteec -L$(TEEC_EXPORT)/lib
 
+BINARY = optee_example_clearkey
 
-OPTEE_AES_LIBNAME = aes_crypto
-.PHONY: clean all
+.PHONY: all
+all: $(BINARY)
 
-all:  aes_crypto
+$(BINARY): $(OBJS)
+	$(CC) $(LDFLAGS) -o $@ $< $(LDADD)
 
-.c.o:
-	$(CXX) $(CXXFLAGS) $(RPC_INCLUDES) -c $< -o $@
-
-aes_crypto.o:
-	@echo Building aes_crypto
-	$(CC) $(AES_CRYPTO_CPPFLAGS) $(AES_CRYPTO_CFLAGS) \
-		$(AES_CRYPTO_LDADD) -o $@ -c $(AES_CRYPTO_SOURCES)
-
-clearkey_platform.o:
-	@echo Building clearkey_platform
-	$(CC) $(AES_CRYPTO_CPPFLAGS) $(AES_CRYPTO_CFLAGS) \
-		$(AES_CRYPTO_LDADD) -o $@ -c $(AES_PLATFORM_SOURCES)
-
-.cpp.o:
-	$(CXX) $(CXXFLAGS) $(CDMI_INCLUDES) -c $< -o $@
-
-aes_crypto: $(AES_CRYPTO_OBJS)
-	@echo "Building aes crypto"
-	$(CC) -shared $(AES_CRYPTO_CFLAGS) $(AES_CRYPTO_LDADD) -o lib$(OPTEE_AES_LIBNAME).so $^
-	$(AR) rcs lib$(OPTEE_AES_LIBNAME).a $^
-
-#	  $(CC) $(LDADD) -o $@ $<
+.PHONY: clean
 clean:
-	rm  -f *.a *.o
+	rm -f $(OBJS) $(BINARY)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@

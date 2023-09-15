@@ -28,6 +28,24 @@
 #ifndef OPTEE_AES_DECRYPT_HOST_H_
 #define OPTEE_AES_DECRYPT_HOST_H_
 
+#include <endian.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <err.h>
+#include <errno.h>
+#include <assert.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <tee_client_api.h>
+#include <tee_client_api_extensions.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
