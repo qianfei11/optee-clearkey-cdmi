@@ -6,7 +6,7 @@ OBJCOPY ?= $(CROSS_COMPILE)objcopy
 OBJDUMP ?= $(CROSS_COMPILE)objdump
 READELF ?= $(CROSS_COMPILE)readelf
 
-OBJS = main.o aes_crypto.o clearkey_platform.o
+OBJS = main.o aes_crypto.o clearkey_platform.o test_helpers.o bignum256.o tz_functions.o test_all.o extern.o
 
 CFLAGS += -Wall -I../ta/include -I./include
 CFLAGS += -I$(TEEC_EXPORT)/include

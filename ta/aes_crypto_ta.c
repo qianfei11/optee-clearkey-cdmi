@@ -22,6 +22,19 @@
   } while(0)
 
 static TEE_OperationHandle crypto_op = NULL;
+
+/*==============================================================================
+  SESSION DATA STRUCTURE
+==============================================================================*/
+/** Session data. The Trusted Application can attach an opaque void* context to
+ * the session . This context is recalled in all subsequent TA calls within
+ * the session.
+ */
+typedef struct session_data
+{
+  ;
+} Session_data;
+
 /*
  * Called when the instance of the TA is created. This is the first call in
  * the TA.
@@ -79,6 +92,62 @@ void TA_CloseSessionEntryPoint(void *sess_ctx)
   if (crypto_op)
     TEE_FreeOperation(crypto_op);
   DMSG("Session closed");
+}
+
+/**
+ * Called to initialize the operation handles allocated in the session context.
+ * \param session_data A data pointer to a session context.
+ * \param param_types The types of the four parameters.
+ * \param params A pointer to an array of four parameters.
+ * \return TEE_SUCCESS in case of success otherwise returns the result
+ *         received from the failed operation. The information about all
+ *         possible returns is present in TEE Client API Specification - 4.4.2
+ *         published by GlobalPlatform.
+ */
+static TEE_Result initialize_handlers(Session_data *session_data, uint32_t param_types, TEE_Param params[4])
+{
+  TEE_Result result = TEE_SUCCESS;
+
+  /* It is not expected any parameters */
+  uint32_t exp_param_types = TEE_PARAM_TYPES(
+      TEE_PARAM_TYPE_NONE,
+      TEE_PARAM_TYPE_NONE,
+      TEE_PARAM_TYPE_NONE,
+      TEE_PARAM_TYPE_NONE);
+  /* Unused parameters */
+  (void)&params;
+
+  /* Check the type of the parameters received */
+  if (param_types != exp_param_types)
+    return TEE_ERROR_BAD_PARAMETERS;
+
+/* Resources cleanup */
+cleanup1:
+  return result;
+}
+
+/**
+ * Called to finalize the operation handles allocated in the session context.
+ * \param session_data A data pointer to a session context.
+ * \param param_types The types of the four parameters.
+ * \param params A pointer to an array of four parameters.
+ * \return TEE_SUCCESS if TEE_FreeOperation does not fail.
+ */
+static TEE_Result finalize_handlers(Session_data *session_data, uint32_t param_types, TEE_Param params[4])
+{
+  uint32_t exp_param_types = TEE_PARAM_TYPES(
+      TEE_PARAM_TYPE_NONE,
+      TEE_PARAM_TYPE_NONE,
+      TEE_PARAM_TYPE_NONE,
+      TEE_PARAM_TYPE_NONE);
+  /* Unused parameters */
+  (void)&params;
+
+  /* Check the type of the parameters received */
+  if (param_types != exp_param_types)
+    return TEE_ERROR_BAD_PARAMETERS;
+
+  return TEE_SUCCESS;
 }
 
 static TEE_Result allocate_crypto_op(uint8_t *key, uint32_t key_size)
@@ -407,7 +476,12 @@ TEE_Result TA_InvokeCommandEntryPoint(void *sess_ctx, uint32_t cmd_id,
 {
   (void)&sess_ctx; /* Unused parameter */
 
-  switch (cmd_id) {
+  switch (cmd_id)
+  {
+  case TA_INITIALIZE_HANDLERS:
+    return initialize_handlers(NULL, param_types, params);
+  case TA_FINALIZE_HANDLERS:
+    return finalize_handlers(NULL, param_types, params);
   case TA_AES_CTR128_ENCRYPT:
     return aes_Ctr128_Encrypt(param_types, params);
   case TA_COPY_SECURE_MEMORY:
