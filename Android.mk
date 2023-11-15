@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS += -DANDROID_BUILD
 LOCAL_CFLAGS += -Wall
 
-LOCAL_SRC_FILES += host/main.c
+LOCAL_SRC_FILES += host/main.c host/aes_crypto.c host/clearkey_platform.c
 
 LOCAL_C_INCLUDES := $(LOCAL_PATH)/ta/include
 

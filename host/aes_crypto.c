@@ -116,6 +116,22 @@ TEE_AES_ctr128_encrypt(const unsigned char* in_data,
   uint32_t len = length;
   TEEC_SharedMemory g_outm;
 
+  // printf("offset: %d, blockOffset: %d, length: %d\n", offset, blockOffset, length);
+
+  // printf("in_data: ");
+  // for (int i = 0; i < length; i++)
+  // {
+  //   printf("0x%02x ", *((uint8_t *) in_data + i));
+  // }
+  // printf("\n");
+
+  // printf("out_data: ");
+  // for (int i = 0; i < length; i++)
+  // {
+  //   printf("0x%02x ", *((uint8_t *) out_data + i));
+  // }
+  // printf("\n");
+
   if (!key || !out_data || !num || !iv)
     return EINVAL;
 
@@ -159,6 +175,13 @@ TEE_AES_ctr128_encrypt(const unsigned char* in_data,
   op.params[PARAM_AES_ENCRYPTED_BUFFER_IDX].tmpref.size =
     length + blockOffset;
 
+  // printf("TA input buffer: ");
+  // for (int i = 0; i < op.params[PARAM_AES_ENCRYPTED_BUFFER_IDX].tmpref.size; i++)
+  // {
+  //   printf("0x%02x ", *((uint8_t *) op.params[PARAM_AES_ENCRYPTED_BUFFER_IDX].tmpref.buffer + i));
+  // }
+  // printf("\n");
+
   /* TA output buffer */
   if (!secure) {
     op.params[PARAM_AES_DECRYPTED_BUFFER_IDX].tmpref.buffer =
@@ -193,6 +216,13 @@ TEE_AES_ctr128_encrypt(const unsigned char* in_data,
   ion_map_and_memcpy(out_data + offset, length, secure_fd, blockOffset);
   close(secure_fd);
 #endif
+
+  // printf("TA output buffer: ");
+  // for (int i = 0; i < op.params[PARAM_AES_DECRYPTED_BUFFER_IDX].tmpref.size; i++)
+  // {
+  //   printf("0x%02x ", *((uint8_t *) op.params[PARAM_AES_DECRYPTED_BUFFER_IDX].tmpref.buffer + i));
+  // }
+  // printf("\n");
 
   if(length + blockOffset > 16)
     len = length + blockOffset;
