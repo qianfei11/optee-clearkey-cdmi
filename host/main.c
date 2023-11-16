@@ -48,6 +48,8 @@ typedef struct
     size_t *bytesDecryptedOut;
 } AesCtrDecryptorTest;
 
+static int test_num = 0;
+
 void attemptDecrypt(Key *key, Iv *iv, uint8_t *source,
                     uint8_t *destination, sub_sample_t *subSamples,
                     size_t numSubSamples, size_t *bytesDecryptedOut, size_t totalSize)
@@ -237,6 +239,8 @@ void attemptDecryptExpectingSuccess(Key *key, Iv *iv,
     printf("Decryption succeeded\n");
     free(outputBuffer);
     outputBuffer = NULL;
+
+    test_num++;
 }
 
 void DecryptsContiguousEncryptedBlock(void)
@@ -276,7 +280,7 @@ void DecryptsContiguousEncryptedBlock(void)
     sub_sample_t subSamples[NUM_SUBSAMPLES] = {
         {0, 64}};
 
-    printf("DecryptsContiguousEncryptedBlock\n");
+    printf("TEST #%d DecryptsContiguousEncryptedBlock\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
@@ -326,7 +330,7 @@ void DecryptsAlignedBifurcatedEncryptedBlock(void)
         {0, 32},
         {0, 32}};
 
-    printf("DecryptsAlignedBifurcatedEncryptedBlock\n");
+    printf("TEST #%d DecryptsAlignedBifurcatedEncryptedBlock\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
@@ -376,7 +380,7 @@ void DecryptsUnalignedBifurcatedEncryptedBlock(void)
         {0, 29},
         {0, 35}};
 
-    printf("DecryptsUnalignedBifurcatedEncryptedBlock\n");
+    printf("TEST #%d DecryptsUnalignedBifurcatedEncryptedBlock\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
@@ -429,7 +433,7 @@ void DecryptsOneMixedSubSample(void)
     sub_sample_t subSamples[NUM_SUBSAMPLES] = {
         {8, 64}};
 
-    printf("DecryptsOneMixedSubSample\n");
+    printf("TEST #%d DecryptsOneMixedSubSample\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
@@ -487,7 +491,7 @@ void DecryptsAlignedMixedSubSamples(void)
         {8, 32},
         {8, 32}};
 
-    printf("DecryptsAlignedMixedSubSamples\n");
+    printf("TEST #%d DecryptsAlignedMixedSubSamples\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
@@ -546,7 +550,7 @@ void DecryptsUnalignedMixedSubSamples(void)
         {8, 30},
         {8, 34}};
 
-    printf("DecryptsUnalignedMixedSubSamples\n");
+    printf("TEST #%d DecryptsUnalignedMixedSubSamples\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
@@ -616,7 +620,7 @@ void DecryptsComplexMixedSubSamples(void)
         {3, 14},
         {2, 0}};
 
-    printf("DecryptsComplexMixedSubSamples\n");
+    printf("TEST #%d DecryptsComplexMixedSubSamples\n", test_num);
 
     TEE_crypto_init();
     attemptDecryptExpectingSuccess(&key, &iv, encrypted, decrypted,
